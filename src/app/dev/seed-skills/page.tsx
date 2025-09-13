@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from '@/src/lib/firebase-auth-shim';
 import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 type Tree = Record<string, string[]>;

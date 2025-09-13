@@ -1,34 +1,52 @@
 // src/lib/firebase.ts
-import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence, signInAnonymously, User } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+// Inisialisasi Firebase *hanya di client* dan *lazy* supaya build/SSR tidak menyentuh Firebase client SDK.
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FB_API_KEY!,
-  authDomain: process.env.NEXT_PUBLIC_FB_AUTH_DOMAIN!,
-  projectId: process.env.NEXT_PUBLIC_FB_PROJECT_ID!,
-  appId: process.env.NEXT_PUBLIC_FB_APP_ID!,
-  storageBucket: process.env.NEXT_PUBLIC_FB_STORAGE_BUCKET!, // ex: tukangpro-69c18.appspot.com  OR  tukangpro
-};
+type FirebaseApp = unknown;
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+let _app: FirebaseApp | null = null;
 
-const auth = getAuth(app);
-setPersistence(auth, browserLocalPersistence);
-
-const db = getFirestore(app);
-
-// penting: arahkan ke bucket dari ENV supaya tidak nyasar
-const storage = getStorage(app, `gs://${process.env.NEXT_PUBLIC_FB_STORAGE_BUCKET}`);
-
-// helper login anonim kalau belum login (dipakai uploader)
-export async function ensureAuth(): Promise<User> {
-  if (!auth.currentUser) {
-    await signInAnonymously(auth);
-  }
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  return auth.currentUser!;
+function getConfig() {
+  return {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '',
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || undefined,
+  };
 }
 
-export { app, auth, db, storage };
+/** Panggil HANYA di client (komponen 'use client' / di useEffect). */
+export function getClientApp(): FirebaseApp | null {
+  if (typeof window === 'undefined') return null;
+
+  const cfg = getConfig();
+  if (!cfg.apiKey) return null; // env belum ada → jangan init
+
+  // Import dinamis di client (hindari eksekusi saat SSR/build)
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { initializeApp, getApps } = require('firebase/app');
+
+  if (!_app) _app = getApps().length ? getApps()[0] : initializeApp(cfg);
+  return _app;
+}
+
+/** Ambil Auth di client; kembalikan null jika env belum ada. */
+export async function getClientAuth() {
+  if (typeof window === 'undefined') return null;
+  const app = getClientApp();
+  if (!app) return null;
+  const { getAuth } = await import('firebase/auth');
+  return getAuth(app as any);
+}
+
+/** (Opsional) Analytics di client */
+export async function getClientAnalytics() {
+  if (typeof window === 'undefined') return null;
+  const app = getClientApp();
+  if (!app) return null;
+  const { getAnalytics, isSupported } = await import('firebase/analytics');
+  if (!(await isSupported())) return null;
+  return getAnalytics(app as any);
+}

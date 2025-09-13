@@ -10,7 +10,7 @@ import { BadgeCheck, ShieldCheck, Star, Phone, Heart, X } from 'lucide-react';
 import type { Vendor } from '@/lib/format';
 import { formatRupiah, waLink } from '@/lib/format';
 import VendorCard from '@/components/VendorCard';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from '@/src/lib/firebase-auth-shim';
 import { auth } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 

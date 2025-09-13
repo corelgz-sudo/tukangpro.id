@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { auth, db, storage } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from '@/src/lib/firebase-auth-shim';
 import {
   doc,
   getDoc,

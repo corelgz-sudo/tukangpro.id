@@ -1,3 +1,5 @@
+export const dynamic="force-dynamic";
+export const revalidate=0;
 // src/app/layout.tsx
 import type { Metadata } from 'next';
 import './globals.css';

@@ -8,7 +8,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithCustomToken,
   signInWithEmailAndPassword,
-} from 'firebase/auth';
+} from '@/src/lib/firebase-auth-shim';
 
 import { doc, serverTimestamp, setDoc, getDoc, arrayUnion } from 'firebase/firestore';
 import { resolveRole, AppRole } from '@/lib/auth/role';

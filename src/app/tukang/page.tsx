@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from '@/src/lib/firebase-auth-shim';
 import { auth, db } from '@/lib/firebase';
 import { Vendor } from '@/lib/format';
 import { doc, onSnapshot /* , query, where, collection */ } from 'firebase/firestore';
