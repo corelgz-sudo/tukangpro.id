@@ -48,6 +48,15 @@ export async function getClientDb() {
   return getFirestore(app as any);
 }
 
+/** Storage di client; null saat SSR atau env kosong */
+export async function getClientStorage() {
+  if (typeof window === 'undefined') return null;
+  const app = getClientApp();
+  if (!app) return null;
+  const { getStorage } = await import('firebase/storage');
+  return getStorage(app as any);
+}
+
 /** (opsional) Analytics di client */
 export async function getClientAnalytics() {
   if (typeof window === 'undefined') return null;
@@ -67,7 +76,6 @@ export async function ensureAuth(timeoutMs = 3000): Promise<FirebaseUser | null>
   const auth = await getClientAuth();
   if (!auth) return null;
 
-  // Jika sudah ada currentUser, langsung kembalikan
   // @ts-expect-error: runtime object
   if (auth.currentUser) return auth.currentUser as FirebaseUser;
 
@@ -91,8 +99,9 @@ export async function ensureAuth(timeoutMs = 3000): Promise<FirebaseUser | null>
 }
 
 /**
- * Ekspor dummy agar import lama `import { auth, db } from '@/lib/firebase'` tidak bikin build pecah.
- * Untuk runtime gunakan getClientAuth()/getClientDb().
+ * Ekspor dummy agar import lama `import { auth, db, storage } from '@/lib/firebase'` tidak bikin build pecah.
+ * Untuk runtime gunakan getClientAuth()/getClientDb()/getClientStorage().
  */
 export const auth: any = undefined as any;
 export const db: any = undefined as any;
+export const storage: any = undefined as any;
