@@ -178,7 +178,8 @@ useEffect(() => {
       const ref = doc(db, 'vendors', uid);
       const exists = await getDoc(ref);
       if (!exists.exists()) {
-        const u = auth.currentUser;
+       const u = await ensureAuth();
+if (!u) return;
         await setDoc(
           ref,
           {
