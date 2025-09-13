@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged } from '@/src/lib/firebase-auth-shim';
+import { onAuthStateChanged } from '@/lib/firebase-auth-shim';
 import { doc, getDoc } from 'firebase/firestore';
 
 function initials(name?: string) {

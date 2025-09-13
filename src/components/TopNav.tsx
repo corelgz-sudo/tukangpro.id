@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged, signOut, User } from '@/src/lib/firebase-auth-shim';
+import { onAuthStateChanged, signOut, User } from '@/lib/firebase-auth-shim';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 type AppRole = 'owner' | 'vendor' | 'admin';

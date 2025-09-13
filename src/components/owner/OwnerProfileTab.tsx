@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db, storage } from '@/lib/firebase';
-import { onAuthStateChanged } from '@/src/lib/firebase-auth-shim';
+import { onAuthStateChanged } from '@/lib/firebase-auth-shim';
 import {
   doc,
   getDoc,
