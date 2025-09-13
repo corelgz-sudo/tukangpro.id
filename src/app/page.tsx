@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { withFirestore } from '@/lib/firebase';
 import TopNav from '@/components/TopNav';
 import HeroSearch from '@/components/HeroSearch';
-
 type Vendor = { id: string; name?: string; [k: string]: any };
 
 export default function HomePage() {
+  console.log('[Home] v3 loaded');
   const [vendors, setVendors] = useState<Vendor[]>([]);
 
   useEffect(() => {
@@ -14,11 +14,10 @@ export default function HomePage() {
       try {
         await withFirestore(async (fs, db) => {
           const snap = await fs.getDocs(fs.collection(db, 'vendors'));
-          setVendors(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+          setVendors(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         });
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('load vendors error', e);
+        console.warn('[Home] load vendors', e);
       }
     })();
   }, []);
