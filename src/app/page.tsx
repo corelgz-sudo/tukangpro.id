@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getClientDb } from '@/lib/firebase';
-import HeroSearch from '@/components/HeroSearch';
+import { withFirestore } from '@/lib/firebase';
 import TopNav from '@/components/TopNav';
+import HeroSearch from '@/components/HeroSearch';
 
 type Vendor = { id: string; name?: string; [k: string]: any };
 
@@ -11,12 +11,15 @@ export default function HomePage() {
 
   useEffect(() => {
     (async () => {
-      const db = await getClientDb();
-      if (!db) return; // env belum siap → skip
-      const { collection, getDocs } = await import('firebase/firestore');
-      const snap = await getDocs(collection(db, 'vendors')).catch((e) => { console.warn('load vendors', e); return null; });
-      if (!snap) return;
-      setVendors(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      try {
+        await withFirestore(async (fs, db) => {
+          const snap = await fs.getDocs(fs.collection(db, 'vendors'));
+          setVendors(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        });
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('load vendors error', e);
+      }
     })();
   }, []);
 

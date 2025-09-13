@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getClientDb } from '@/lib/firebase';
+import { withFirestore } from '@/lib/firebase';
 
 type Row = { id: string; [k: string]: any };
 
@@ -11,21 +11,21 @@ export default function HeroSearch() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const db = await getClientDb();
-      if (!db) { console.warn('[HeroSearch] DB not ready'); return; }
-
-      const { collection, getDocs } = await import('firebase/firestore');
-
-      const [snapSkills, snapRegencies] = await Promise.all([
-        getDocs(collection(db, 'catalog_skills')).catch((e) => { console.warn('[HeroSearch] skills', e); return null; }),
-        getDocs(collection(db, 'catalog_regencies')).catch((e) => { console.warn('[HeroSearch] regencies', e); return null; }),
-      ]);
-
-      if (cancelled) return;
-      if (snapSkills)   setSkills(snapSkills.docs.map(d => ({ id: d.id, ...d.data() })));
-      if (snapRegencies) setRegencies(snapRegencies.docs.map(d => ({ id: d.id, ...d.data() })));
+      try {
+        await withFirestore(async (fs, db) => {
+          const [snapSkills, snapRegencies] = await Promise.all([
+            fs.getDocs(fs.collection(db, 'catalog_skills')),
+            fs.getDocs(fs.collection(db, 'catalog_regencies')),
+          ]);
+          if (cancelled) return;
+          setSkills(snapSkills.docs.map(d => ({ id: d.id, ...d.data() })));
+          setRegencies(snapRegencies.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[HeroSearch] load error', e);
+      }
     })();
-
     return () => { cancelled = true; };
   }, []);
 
