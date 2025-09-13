@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  --foreground: #0f172a; /* slate-900 */
+  --background: #F5F7FF; /* <<< warna dasar situs */
+}
+
+/* Jangan ubah background saat dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground: #0f172a;
+    --background: #F5F7FF;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background-color: var(--background) !important;
+}
+
+/* (opsional) pastikan html juga terang */
+html { background-color: var(--background) !important; }
+
+@layer utilities {
+  /* Outline ala profil: bingkai lembut + inner highlight */
+  .card-outline {
+    @apply rounded-2xl border bg-white;
+    border-color: #E4E8F1;           /* abu kebiruan lembut */
+    box-shadow:
+      0 1px 0 rgba(17,24,39,0.04),   /* shadow tipis */
+      inset 0 1px 0 rgba(255,255,255,0.7); /* highlight dalam (atas) */
+  }
+  .card-outline-hover:hover {
+    box-shadow:
+      0 2px 8px rgba(17,24,39,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  /* Garis pemisah di dalam card (opsional) */
+  .card-section {
+    border-top: 1px solid #EEF2F8;
+  }
+}
+

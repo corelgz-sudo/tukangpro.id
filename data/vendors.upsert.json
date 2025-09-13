@@ -1,0 +1,17 @@
+[
+  {
+    "id": "vnd_demo_1",
+    "displayName": "CV Maju Jaya",
+    "waNumber": "628123456789",
+    "province_id": "32",
+    "regency_id": "3273",
+    "district_ids": ["3273051"],
+    "skills": ["tukang-sipil"],
+    "subskills": ["tukang-cat", "tukang-keramik"],
+    "ratingAvg": 4.7,
+    "ratingCount": 31,
+    "rankScore": 147,
+    "regency_name": "Kota Bandung",
+    "province_name": "Jawa Barat"
+  }
+]
