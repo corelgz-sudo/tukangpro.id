@@ -1,55 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { auth, db } from '@/lib/firebase';
+import type { User } from '@/lib/firebase-auth-shim';
 import { onAuthStateChanged } from '@/lib/firebase-auth-shim';
-import { doc, getDoc } from 'firebase/firestore';
+import { getClientAuth } from '@/lib/firebase';
 
-function initials(name?: string) {
-  if (!name) return 'U';
-  const parts = name.trim().split(/\s+/);
-  return (parts[0]?.[0] || 'U') + (parts[1]?.[0] || '');
-}
-
-export default function UserAvatar({
-  size = 36,
-  className = '',
-}: {
-  size?: number;
-  className?: string;
-}) {
-  const [photoURL, setPhotoURL] = useState<string>('');
-  const [displayName, setDisplayName] = useState<string>('');
+export default function UserAvatar() {
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) return;
-      // ambil dari users/{uid}
-      const snap = await getDoc(doc(db, 'users', u.uid));
-      const d = (snap.exists() ? snap.data() : {}) as any;
-      setPhotoURL(d.photoURL || '');
-      setDisplayName(d.displayName || u.displayName || '');
-    });
-    return () => unsub();
+    let unsub: (() => void) | undefined;
+    (async () => {
+      const auth = await getClientAuth();
+      if (!auth) return;
+      unsub = onAuthStateChanged((u) => setUser(u));
+    })();
+    return () => unsub?.();
   }, []);
 
-  const style = { width: size, height: size };
-
+  const src = user?.photoURL ?? 'https://i.pravatar.cc/64';
+  const alt = user?.email ?? 'avatar';
   return (
-    <div
-      className={[
-        'rounded-full bg-indigo-600 text-white flex items-center justify-center overflow-hidden select-none',
-        className,
-      ].join(' ')}
-      style={style}
-      aria-label="User avatar"
-    >
-      {photoURL ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={photoURL} alt="avatar" className="w-full h-full object-cover" />
-      ) : (
-        <span className="font-semibold">{initials(displayName).toUpperCase()}</span>
-      )}
-    </div>
+    // pakai <img> dulu biar simpel; nanti bisa ganti ke next/image
+    <img src={src} alt={alt} width={32} height={32} style={{ borderRadius: 9999 }} />
   );
 }
