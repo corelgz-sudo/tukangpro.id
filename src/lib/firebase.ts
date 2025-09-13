@@ -2,6 +2,7 @@
 // Inisialisasi Firebase *client-only & lazy* agar aman saat build/SSR.
 
 type FirebaseApp = unknown;
+export type FirebaseUser = import('firebase/auth').User;
 
 let _app: FirebaseApp | null = null;
 
@@ -58,8 +59,40 @@ export async function getClientAnalytics() {
 }
 
 /**
- * Ekspor dummy agar import lama `import { auth, db } from '@/lib/firebase'` tidak pecah.
- * Jangan dipakai langsung; gunakan getClientAuth()/getClientDb() di code baru.
+ * Pastikan auth siap & dapatkan user (client only).
+ * Menunggu onAuthStateChanged sekali, lalu resolve user (atau null saat timeout).
+ */
+export async function ensureAuth(timeoutMs = 3000): Promise<FirebaseUser | null> {
+  if (typeof window === 'undefined') return null;
+  const auth = await getClientAuth();
+  if (!auth) return null;
+
+  // Jika sudah ada currentUser, langsung kembalikan
+  // @ts-expect-error: runtime object
+  if (auth.currentUser) return auth.currentUser as FirebaseUser;
+
+  const { onAuthStateChanged } = await import('firebase/auth');
+
+  return await new Promise<FirebaseUser | null>((resolve) => {
+    let settled = false;
+    const unsub = onAuthStateChanged(auth as any, (u) => {
+      if (settled) return;
+      settled = true;
+      unsub();
+      resolve((u as FirebaseUser) ?? null);
+    });
+    setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      unsub();
+      resolve(null);
+    }, timeoutMs);
+  });
+}
+
+/**
+ * Ekspor dummy agar import lama `import { auth, db } from '@/lib/firebase'` tidak bikin build pecah.
+ * Untuk runtime gunakan getClientAuth()/getClientDb().
  */
 export const auth: any = undefined as any;
 export const db: any = undefined as any;
