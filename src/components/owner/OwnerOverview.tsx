@@ -233,7 +233,7 @@ export default function OwnerOverview({ ownerId }: { ownerId: string }) {
         });
         setUser({
           displayName: udata.displayName || '',
-          phone: udata.phone || udata.whatsapp || '',
+          phone: udata.phone || (udata as any).whatsapp || '',
           email: udata.email || auth.currentUser?.email || '',
           address: udata.address || '',
           photoURL: udata.photoURL || '',

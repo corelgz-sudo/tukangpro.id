@@ -7,7 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import HeroSearch from '@/components/HeroSearch';
 import HomeSponsor from '@/components/SponsorStrip';
 import BlogTeaser from '@/components/BlogTeaser';
-import VendorCard, { Vendor } from '@/components/VendorCard';
+import VendorCard from '@/components/VendorCard';
+import type { Vendor } from '@/lib/format';
 import { db } from '@/lib/firebase';
 import {
   collection,

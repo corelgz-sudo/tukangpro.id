@@ -3,7 +3,8 @@
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import TopNav from '@/components/TopNav';
-import VendorCard, { Vendor } from '@/components/VendorCard';
+import VendorCard from '@/components/VendorCard';
+import type { Vendor } from '@/lib/format';
 import Pagination from '@/components/Pagination';
 import Footer from '@/components/Footer';
 
@@ -140,23 +141,41 @@ const districtId = sp.get('district') ?? '';  // district_id (kec)
 function mapVendorDoc(id: string, v: DocumentData): Vendor {
   return {
     id,
-    name: v.displayName ?? 'Vendor',
-    city: v.city ?? v.regency_name ?? '-', // fallback label tampilan
-    skill: (v.skills?.[0] ?? '-') as string,
-    exp: v.experienceText ?? '-',
-    priceText: v.priceText ?? '-',
-    nego: v.nego ?? 'Nego',
-    tools: v.tools ?? 'Tersedia Standard',
-    rating: Number(v.ratingAvg ?? 0),
-    reviews: Number(v.ratingCount ?? 0),
-    pro: !!(v.proUntil && v.proUntil.toMillis?.() > Date.now()),
-    verified: !!v.verified,
-    photo: v.photoUrl ?? '',
-    portfolioThumb: v.portfolioThumb ?? v.photoUrl ?? '',
-    waNumber: v.waNumber,
-    vendorKind: v.vendorKind,
-legal: v.legal,
-  };
+
+    // Nama/tampilan
+    displayName: v.displayName || v.name || 'Vendor',
+    avatarUrl: v.photoURL || v.avatarUrl || '',
+
+    // Lokasi
+    city: v.city || v.regency_name || '-',
+    district: v.district || v.district_name || '',
+
+    // Skills harus array
+    skills: Array.isArray(v.skills) ? v.skills
+           : v.skills ? [String(v.skills)]
+           : [],
+
+    // Pengalaman (angka, default 0)
+    yearsExp: typeof v.yearsExp === 'number' ? v.yearsExp
+             : typeof v.experienceYears === 'number' ? v.experienceYears
+             : 0,
+
+    // Tarif harian (angka, default 0)
+    pricePerDay: typeof v.dailyRate === 'number' ? v.dailyRate
+               : typeof v.pricing?.daily === 'number' ? v.pricing.daily
+               : 0,
+
+    // Flag/opsi lain
+    negotiable: Boolean(v.negoDay ?? v.nego ?? false),
+    toolsStandard: !(v.toolsProvidedByOwner ?? false),
+    rating: Number(v.rating ?? 0),
+    reviewCount: Number(v.reviewCount ?? 0),
+    isPro: Array.isArray(v.badges) ? v.badges.includes('pro') : false,
+    verified: v.status === 'verified' || v.verified === true,
+
+    // Kontak
+    whatsapp: v.phone || v.whatsapp || '',
+  } satisfies Vendor;
 }
 
 /** Badge kecil */

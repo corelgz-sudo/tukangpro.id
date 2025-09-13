@@ -392,7 +392,7 @@ useEffect(() => {
 
         {tab === 'edit' && (
           <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <EditVendorForm uid={uid!} initial={vendor} redirectTo="/dashboard?tab=overview" />
+            <EditVendorForm uid={uid!} initial={vendor} />
           </div>
         )}
 

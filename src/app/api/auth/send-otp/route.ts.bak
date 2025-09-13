@@ -1,0 +1,89 @@
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const revalidate = 0;
+// src/app/api/auth/send-otp/route.ts
+import { NextResponse } from 'next/server';
+import { ServerClient } from 'postmark';
+import crypto from 'node:crypto';
+import admin from 'firebase-admin';
+
+export const runtime = 'nodejs'; // penting: jangan edge
+
+// Init Admin
+if (!admin.apps.length) {
+  admin.initializeApp({ credential: admin.credential.applicationDefault() });
+}
+const db = admin.firestore();
+
+const postmark = new ServerClient(process.env.POSTMARK_TOKEN!);
+
+const CODE_TTL_MS = 10 * 60 * 1000;      // 10 menit
+const RL_WINDOW_MS = 15 * 60 * 1000;     // 15 menit
+const RL_MAX = 3;                        // max 3 kirim / 15 menit
+
+export async function POST(req: Request) {
+  try {
+    const { email, captchaToken, role = 'owner' } = await req.json();
+    if (!email) return NextResponse.json({ error: 'Email wajib' }, { status: 400 });
+    if (!captchaToken) return NextResponse.json({ error: 'Captcha wajib' }, { status: 400 });
+
+    // 1) Verifikasi reCAPTCHA
+    const secret = process.env.RECAPTCHA_SECRET_KEY;
+    const form = new URLSearchParams();
+    form.set('secret', secret || '');
+    form.set('response', captchaToken);
+    const g = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form.toString(),
+    });
+    const result = await g.json();
+    if (!result.success) {
+      return NextResponse.json({ error: 'Verifikasi captcha gagal' }, { status: 400 });
+    }
+
+    // 2) Rate limit per email (hash key)
+    const key = crypto.createHash('sha256').update(email.toLowerCase()).digest('hex');
+    const ref = db.collection('email_otps').doc(key);
+    const now = Date.now();
+    const snap = await ref.get();
+    const data = snap.exists ? snap.data()! : {};
+    const sent: number[] = (data.sent || []).filter((t: number) => now - t < RL_WINDOW_MS);
+    if (sent.length >= RL_MAX) {
+      return NextResponse.json({ error: 'Terlalu sering. Coba lagi nanti.' }, { status: 429 });
+    }
+
+    // 3) Generate OTP + simpan hash
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+
+    await ref.set(
+      {
+        email,
+        role, // owner | vendor
+        codeHash,
+        expireAt: now + CODE_TTL_MS,
+        attempts: 0,
+        sent: [...sent, now],
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    // 4) Kirim email via Postmark
+    await postmark.sendEmail({
+      From: 'no-reply@tukangpro.id',
+      To: email,
+      Subject: `[TukangPro] Kode masuk: ${code}`,
+      TextBody: `Kode masuk Anda: ${code}\nBerlaku 10 menit.\nJika bukan Anda, abaikan email ini.`,
+      HtmlBody:
+        `<p>Kode masuk Anda:</p><p style="font-size:24px;font-weight:700;letter-spacing:2px">${code}</p>` +
+        `<p>Kode berlaku <b>10 menit</b>. Jika bukan Anda, abaikan email ini.</p>`,
+      MessageStream: 'outbound',
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Error' }, { status: 500 });
+  }
+}

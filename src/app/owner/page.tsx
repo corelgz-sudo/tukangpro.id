@@ -113,8 +113,8 @@ useEffect(() => {
 
       <section className="mt-6">
         {tab==='overview'  && <OwnerOverview ownerId={uid!} />}
-        {tab==='tenders'   && <OwnerTendersTab ownerId={uid!} />}
-        {tab==='favorites' && <OwnerFavoritesTab ownerId={uid!} />}
+        {tab==='tenders'   && <OwnerTendersTab />}
+        {tab==='favorites' && <OwnerFavoritesTab />}
         {tab === 'profile' && uid && <OwnerProfileTab uid={uid} />}
       </section>
     </main>
