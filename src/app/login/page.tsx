@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CaptchaCheckbox from '@/components/CaptchaCheckbox';
-import { auth, db } from '@/lib/firebase';
+import { getClientDb, ensureAuth } from '@/lib/firebase';
 import {
   createUserWithEmailAndPassword,
   signInWithCustomToken,
@@ -23,7 +23,9 @@ export default function LoginPage() {
   const router = useRouter();
 
   async function routeAfterLogin() {
-  const u = auth.currentUser!;
+  const u = await ensureAuth();
+if (!u) return;              // belum login / auth belum siap
+const db = await getClientDb();
   // baca user doc
   const uref = doc(db, 'users', u.uid);
   const usnap = await getDoc(uref);
