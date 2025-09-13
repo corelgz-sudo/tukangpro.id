@@ -1,5 +1,5 @@
 // src/lib/firebase.ts
-// Inisialisasi Firebase *hanya di client* dan *lazy* supaya build/SSR tidak menyentuh Firebase client SDK.
+// Inisialisasi Firebase *client-only & lazy* agar aman saat build/SSR.
 
 type FirebaseApp = unknown;
 
@@ -17,22 +17,19 @@ function getConfig() {
   };
 }
 
-/** Panggil HANYA di client (komponen 'use client' / di useEffect). */
+/** Ambil app di CLIENT; null saat SSR atau env belum siap */
 export function getClientApp(): FirebaseApp | null {
   if (typeof window === 'undefined') return null;
-
   const cfg = getConfig();
-  if (!cfg.apiKey) return null; // env belum ada → jangan init
-
-  // Import dinamis di client (hindari eksekusi saat SSR/build)
+  if (!cfg.apiKey) return null;
+  // Import dinamis agar tidak tersentuh saat build/SSR
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { initializeApp, getApps } = require('firebase/app');
-
   if (!_app) _app = getApps().length ? getApps()[0] : initializeApp(cfg);
   return _app;
 }
 
-/** Ambil Auth di client; kembalikan null jika env belum ada. */
+/** Auth di client; null saat SSR atau env kosong */
 export async function getClientAuth() {
   if (typeof window === 'undefined') return null;
   const app = getClientApp();
@@ -41,7 +38,16 @@ export async function getClientAuth() {
   return getAuth(app as any);
 }
 
-/** (Opsional) Analytics di client */
+/** Firestore di client; null saat SSR atau env kosong */
+export async function getClientDb() {
+  if (typeof window === 'undefined') return null;
+  const app = getClientApp();
+  if (!app) return null;
+  const { getFirestore } = await import('firebase/firestore');
+  return getFirestore(app as any);
+}
+
+/** (opsional) Analytics di client */
 export async function getClientAnalytics() {
   if (typeof window === 'undefined') return null;
   const app = getClientApp();
@@ -50,3 +56,10 @@ export async function getClientAnalytics() {
   if (!(await isSupported())) return null;
   return getAnalytics(app as any);
 }
+
+/**
+ * Ekspor dummy agar import lama `import { auth, db } from '@/lib/firebase'` tidak pecah.
+ * Jangan dipakai langsung; gunakan getClientAuth()/getClientDb() di code baru.
+ */
+export const auth: any = undefined as any;
+export const db: any = undefined as any;
