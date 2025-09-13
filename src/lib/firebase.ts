@@ -1,5 +1,5 @@
 // src/lib/firebase.ts
-// Inisialisasi Firebase *client-only & lazy* agar aman saat build/SSR.
+// Firebase client-only & lazy init (aman untuk SSR/build)
 
 type FirebaseApp = unknown;
 export type FirebaseUser = import('firebase/auth').User;
@@ -23,7 +23,7 @@ export function getClientApp(): FirebaseApp | null {
   if (typeof window === 'undefined') return null;
   const cfg = getConfig();
   if (!cfg.apiKey) return null;
-  // Import dinamis agar tidak tersentuh saat build/SSR
+  // Import dinamis agar tidak dievaluasi saat build/SSR
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { initializeApp, getApps } = require('firebase/app');
   if (!_app) _app = getApps().length ? getApps()[0] : initializeApp(cfg);
@@ -69,15 +69,18 @@ export async function getClientAnalytics() {
 
 /**
  * Pastikan auth siap & dapatkan user (client only).
- * Menunggu onAuthStateChanged sekali, lalu resolve user (atau null saat timeout).
+ * Menunggu onAuthStateChanged sekali, atau fallback currentUser jika sudah ada.
  */
 export async function ensureAuth(timeoutMs = 3000): Promise<FirebaseUser | null> {
   if (typeof window === 'undefined') return null;
   const auth = await getClientAuth();
   if (!auth) return null;
 
-  // @ts-expect-error: runtime object
-  if (auth.currentUser) return auth.currentUser as FirebaseUser;
+  // Fallback cepat bila sudah ada currentUser (dibungkus try agar aman tipe)
+  try {
+    // @ts-expect-error runtime
+    if (auth.currentUser) return auth.currentUser as FirebaseUser;
+  } catch {}
 
   const { onAuthStateChanged } = await import('firebase/auth');
 
@@ -99,8 +102,24 @@ export async function ensureAuth(timeoutMs = 3000): Promise<FirebaseUser | null>
 }
 
 /**
- * Ekspor dummy agar import lama `import { auth, db, storage } from '@/lib/firebase'` tidak bikin build pecah.
- * Untuk runtime gunakan getClientAuth()/getClientDb()/getClientStorage().
+ * Jalankan fungsi dengan modul Firestore yang sama (hindari mismatch identity).
+ * Pakai ini untuk semua query: withFirestore(async (fs, db) => { ... })
+ */
+export async function withFirestore<T>(
+  fn: (fs: typeof import('firebase/firestore'), db: Awaited<ReturnType<typeof getClientDb>>) => Promise<T>
+): Promise<T> {
+  if (typeof window === 'undefined') throw new Error('withFirestore: client-only');
+  const app = getClientApp();
+  if (!app) throw new Error('withFirestore: app not ready');
+  const fs = await import('firebase/firestore');
+  const db = fs.getFirestore(app as any);
+  // @ts-expect-error runtime
+  return fn(fs as any, db as any);
+}
+
+/**
+ * Ekspor dummy agar import lama `import { auth, db, storage } from '@/lib/firebase'`
+ * tidak memecah build. Untuk runtime, gunakan getter di atas.
  */
 export const auth: any = undefined as any;
 export const db: any = undefined as any;
